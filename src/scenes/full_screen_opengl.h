@@ -14,6 +14,7 @@ public:
 
   void update(AppContext &ctx);
   void render(sf::RenderWindow &window);
+  void resetBuffer(AppContext &ctx);
 
 private:
   void initScene();

@@ -32,7 +32,6 @@ int main(int argc, const char **argv) {
   sf::Clock deltaClock;
   while (window.isOpen()) {
     ImGui::SFML::Update(window, deltaClock.restart());
-    ctx.dtime = deltaClock.getElapsedTime().asSeconds();
 
     scene.update(ctx);
 
@@ -43,8 +42,15 @@ int main(int argc, const char **argv) {
 
     ImGui::Begin("Control");
     ImGui::SetNextItemWidth(100);
-    ImGui::Combo("Display mode", reinterpret_cast<int *>(&ctx.mode), mode_strings,
-                 DisplayMode::MODE_COUNT);
+    if (ImGui::Combo("Display mode", reinterpret_cast<int *>(&ctx.mode), mode_strings,
+                     DisplayMode::MODE_COUNT)) {
+      scene.resetBuffer(ctx);
+    }
+    if (ctx.mode == MODE_DEPTH) {
+      if (ImGui::SliderFloat("Far plane", &ctx.far_plane, 0.0f, 30.0f)) {
+        scene.resetBuffer(ctx);
+      }
+    }
     ImGui::End();
 
     window.clear();
@@ -53,6 +59,7 @@ int main(int argc, const char **argv) {
     window.display();
 
     handleEvents(window);
+    ctx.dtime = deltaClock.getElapsedTime().asSeconds();
     ctx.frame++;
   }
 
