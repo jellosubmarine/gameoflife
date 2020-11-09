@@ -157,9 +157,11 @@ struct PathTracer {
 
     if (ctx.mode == MODE_NORMAL)
       return hit.n;
-    if (ctx.mode == MODE_DEPTH)
-      return Vec3::Ones() * hit.distance / ctx.far_plane;
-
+    if (ctx.mode == MODE_DEPTH) {
+      Vec3 invDepthColor = Vec3::Ones() * hit.distance / ctx.far_plane;
+      invDepthColor      = invDepthColor.array().min(1.f).max(0.f);
+      return Vec3::Ones() - invDepthColor;
+    }
     // 	if shouldTerminate() return object.Le(x, wo)
     if (shouldTerminate(wo, ctx))
       return hit.object->mat.Le(hit, wo);

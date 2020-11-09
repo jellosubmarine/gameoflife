@@ -105,3 +105,8 @@ void FullScreenOpenGLScene::initScene() {
 
   pt_.reset(cam_);
 }
+
+void FullScreenOpenGLScene::resetBuffer(AppContext &ctx) {
+  std::fill(pt_.radianceBuffer.begin(), pt_.radianceBuffer.end(), Radiance::Zero());
+  ctx.frame = 0;
+}
