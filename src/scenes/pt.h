@@ -39,9 +39,9 @@ struct Intersection {
   Object const *object = nullptr;
   Vec3 x;
   Vec3 n;
-  Intersection() {}
-  Intersection(float dist, Object const *obj, Vec3 pos, Vec3 normal)
-      : distance(dist), object(obj), x(pos), n(normal) {}
+  // Intersection() {}
+  // Intersection(float dist, Object const *obj, Vec3 pos, Vec3 normal)
+  //     : distance(dist), object(obj), x(pos), n(normal) {}
   operator bool() const { return valid(); }
   bool valid() const { return object != nullptr and distance > 0.f; }
   bool operator<(Intersection const &other) const {
@@ -110,8 +110,7 @@ struct Sphere : public Transformable {
     }
 
     Vec3 x          = r.origin + r.dir * t0;
-    Intersection is = Intersection(t0, this, x, (x - pos).normalized());
-    return is;
+    return {t0, nullptr, x, (x - pos).normalized()};;
   }
 };
 
@@ -124,10 +123,23 @@ struct Object {
   template <typename T> Object(T &&obj);
   Object(Object const &obj) = default;
   Object(Object &obj)       = default;
-  Intersection intersect(Ray const &r) {
+  ~Object(){};
+
+  Intersection intersect(Ray const &r) const{
+    Intersection ins;
     switch (type) {
     case ObjectType::SPHERE:
-      return sphere.intersect(r);
+      ins = sphere.intersect(r);
+      ins.object = this;
+      return ins;
+    default:
+      abort();
+    }
+  }
+  Material getMaterial() const{
+    switch (type) {
+    case ObjectType::SPHERE:
+      return sphere.mat;
     default:
       abort();
     }
@@ -195,12 +207,12 @@ struct PathTracer {
     }
     // 	if shouldTerminate() return object.Le(x, wo)
     if (shouldTerminate(wo, ctx))
-      return hit.object->mat.Le(hit, wo);
+      return hit.object->getMaterial().Le(hit, wo);
     // 	wi = object.sampleRay(x, wo)
-    auto ms = hit.object->mat.sample(hit, wo);
+    auto ms = hit.object->getMaterial().sample(hit, wo);
     // 	Li = trace(x, wi)
     Radiance Li = trace(scene, ms.wi, ctx);
     // 	return object.Le(x, wo) + 2*PI * object.fr(x, wo, wi) * Li * wi.dot(object.n)
-    return hit.object->mat.Le(hit, wo) + ms.fr.cwiseProduct(Li) * ms.wi.dir.dot(hit.n) / ms.pdf;
+    return hit.object->getMaterial().Le(hit, wo) + ms.fr.cwiseProduct(Li) * ms.wi.dir.dot(hit.n) / ms.pdf;
   }
 };
