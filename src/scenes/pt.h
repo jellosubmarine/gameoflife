@@ -39,6 +39,9 @@ struct Intersection {
   Object const *object = nullptr;
   Vec3 x;
   Vec3 n;
+  Intersection() {}
+  Intersection(float dist, Object const *obj, Vec3 pos, Vec3 normal)
+      : distance(dist), object(obj), x(pos), n(normal) {}
   operator bool() const { return valid(); }
   bool valid() const { return object != nullptr and distance > 0.f; }
   bool operator<(Intersection const &other) const {
@@ -60,7 +63,7 @@ struct Camera {
 };
 
 struct Material {
-  Radiance diffuse;
+  Radiance diffuse   = Radiance::Zero();
   Radiance emittance = Radiance::Zero();
 
   Radiance Le(Intersection const &i, Ray const &wo) const { return emittance; }
@@ -76,11 +79,16 @@ struct Material {
   }
 };
 
-struct Object {
-  // ObjectType type;
-  Vec3 pos;
-  float radius;
+struct Transformable {
+  Vec3 pos = Vec3::Zero();
   Material mat;
+  Transformable(){};
+  Transformable(Vec3 pos_, Material mat_) : pos(pos_), mat(mat_){};
+};
+
+struct Sphere : public Transformable {
+  float radius;
+  Sphere(float rad, Vec3 pos_, Material mat_) : Transformable(pos_, mat_), radius(rad) {}
   Intersection intersect(Ray const &r) const {
     Vec3 L    = pos - r.origin;
     float tca = L.dot(r.dir);
@@ -101,10 +109,33 @@ struct Object {
         return {}; // both t0 and t1 are negative
     }
 
-    Vec3 x = r.origin + r.dir * t0;
-    return {t0, this, x, (x - pos).normalized()};
+    Vec3 x          = r.origin + r.dir * t0;
+    Intersection is = Intersection(t0, this, x, (x - pos).normalized());
+    return is;
   }
 };
+
+struct Object {
+  enum class ObjectType { SPHERE };
+  ObjectType type;
+  union {
+    Sphere sphere;
+  };
+  template <typename T> Object(T &&obj);
+  Object(Object const &obj) = default;
+  Object(Object &obj)       = default;
+  Intersection intersect(Ray const &r) {
+    switch (type) {
+    case ObjectType::SPHERE:
+      return sphere.intersect(r);
+    default:
+      abort();
+    }
+  }
+};
+
+template <>
+inline Object::Object(Sphere &&obj) : type(ObjectType::SPHERE), sphere(std::forward<Sphere>(obj)) {}
 
 struct Scene {
   std::vector<Object> objects;
