@@ -12,8 +12,10 @@ struct Ray {
   int depth = 1;
 };
 
-inline std::random_device rd;  // Will be used to obtain a seed for the random number engine
-inline std::mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd()
+inline std::random_device
+    rd; // Will be used to obtain a seed for the random number engine
+inline std::mt19937
+    gen(rd()); // Standard mersenne_twister_engine seeded with rd()
 inline std::uniform_real_distribution<float> dis(0.0f, 1.f);
 
 struct Sampler {
@@ -35,7 +37,7 @@ struct MaterialSample {
 struct Object;
 
 struct Intersection {
-  float distance       = -1.f;
+  float distance = -1.f;
   Object const *object = nullptr;
   Vec3 x;
   Vec3 n;
@@ -63,17 +65,17 @@ struct Camera {
 };
 
 struct Material {
-  Radiance diffuse   = Radiance::Zero();
+  Radiance diffuse = Radiance::Zero();
   Radiance emittance = Radiance::Zero();
 
   Radiance Le(Intersection const &i, Ray const &wo) const { return emittance; }
   MaterialSample sample(Intersection const &i, Ray const &wo) const {
     MaterialSample ms;
-    ms.fr  = diffuse;
+    ms.fr = diffuse;
     Vec3 d = (Sampler::sample3D() * 2.f - Vec3::Ones()).normalized();
     if (d.dot(i.n) < 0)
       d = -d;
-    ms.wi  = {i.x + i.n * EPSILON, d, wo.depth + 1};
+    ms.wi = {i.x + i.n * EPSILON, d, wo.depth + 1};
     ms.pdf = 1.f;
     return ms;
   }
@@ -88,9 +90,10 @@ struct Transformable {
 
 struct Sphere : public Transformable {
   float radius;
-  Sphere(float rad, Vec3 pos_, Material mat_) : Transformable(pos_, mat_), radius(rad) {}
+  Sphere(float rad, Vec3 pos_, Material mat_)
+      : Transformable(pos_, mat_), radius(rad) {}
   Intersection intersect(Ray const &r) const {
-    Vec3 L    = pos - r.origin;
+    Vec3 L = pos - r.origin;
     float tca = L.dot(r.dir);
     if (tca < 0)
       return {};
@@ -98,8 +101,8 @@ struct Sphere : public Transformable {
     if (d2 > radius * radius)
       return {};
     float thc = std::sqrt(radius * radius - d2);
-    float t0  = tca - thc;
-    float t1  = tca + thc;
+    float t0 = tca - thc;
+    float t1 = tca + thc;
     if (t0 > t1)
       std::swap(t0, t1);
 
@@ -109,8 +112,9 @@ struct Sphere : public Transformable {
         return {}; // both t0 and t1 are negative
     }
 
-    Vec3 x          = r.origin + r.dir * t0;
-    return {t0, nullptr, x, (x - pos).normalized()};;
+    Vec3 x = r.origin + r.dir * t0;
+    return {t0, nullptr, x, (x - pos).normalized()};
+    ;
   }
 };
 
@@ -122,10 +126,10 @@ struct Object {
   };
   template <typename T> Object(T &&obj);
   Object(Object const &obj) = default;
-  Object(Object &obj)       = default;
+  Object(Object &obj) = default;
   ~Object(){};
 
-  Intersection intersect(Ray const &r) const{
+  Intersection intersect(Ray const &r) const {
     Intersection ins;
     switch (type) {
     case ObjectType::SPHERE:
@@ -136,7 +140,7 @@ struct Object {
       abort();
     }
   }
-  Material getMaterial() const{
+  Material getMaterial() const {
     switch (type) {
     case ObjectType::SPHERE:
       return sphere.mat;
@@ -147,7 +151,8 @@ struct Object {
 };
 
 template <>
-inline Object::Object(Sphere &&obj) : type(ObjectType::SPHERE), sphere(std::forward<Sphere>(obj)) {}
+inline Object::Object(Sphere &&obj)
+    : type(ObjectType::SPHERE), sphere(std::forward<Sphere>(obj)) {}
 
 struct Scene {
   std::vector<Object> objects;
@@ -172,24 +177,31 @@ struct PathTracer {
 
   std::vector<Radiance> radianceBuffer;
 
-  void reset(Camera const &cam) { radianceBuffer.resize(cam.w * cam.h, Radiance::Zero()); }
+  void reset(Camera const &cam) {
+    radianceBuffer.resize(cam.w * cam.h, Radiance::Zero());
+  }
 
-  void render(Scene const &scene, Camera const &cam, AppContext &ctx, std::vector<Pixel> &image) {
+  void render(Scene const &scene, Camera const &cam, AppContext &ctx,
+              std::vector<Pixel> &image) {
     // 	foreach pixel in imageBuffer:
     size_t idx = 0;
     for (auto &pixel : image) {
       // 		for sample in range(0, N):
       // for (size_t sample = 0; sample < ctx.samples; ++sample)
-      // 			pixel.radiance += trace(camera.castRay(pixel.xy)) / N
+      // 			pixel.radiance += trace(camera.castRay(pixel.xy))
+      // / N
       radianceBuffer[idx] += trace(scene, cam.castRay(pixel.xy), ctx);
 
       // 		pixel.color = pixel.toSRGB()
-      pixel.color = toSRGB((radianceBuffer[idx] / (ctx.frame + 1)) * ctx.exposure, ctx);
+      pixel.color =
+          toSRGB((radianceBuffer[idx] / (ctx.frame + 1)) * ctx.exposure, ctx);
       idx++;
     }
   }
 
-  bool shouldTerminate(Ray const &r, AppContext &ctx) const { return r.depth > ctx.max_depth; }
+  bool shouldTerminate(Ray const &r, AppContext &ctx) const {
+    return r.depth > ctx.max_depth;
+  }
 
   Radiance trace(Scene const &scene, Ray const &wo, AppContext &ctx) const {
     // 	object = scene.intersect(x, wo)
@@ -202,7 +214,7 @@ struct PathTracer {
       return hit.n;
     if (ctx.mode == MODE_DEPTH) {
       Vec3 invDepthColor = Vec3::Ones() * hit.distance / ctx.far_plane;
-      invDepthColor      = invDepthColor.array().min(1.f).max(0.f);
+      invDepthColor = invDepthColor.array().min(1.f).max(0.f);
       return Vec3::Ones() - invDepthColor;
     }
     // 	if shouldTerminate() return object.Le(x, wo)
@@ -212,7 +224,9 @@ struct PathTracer {
     auto ms = hit.object->getMaterial().sample(hit, wo);
     // 	Li = trace(x, wi)
     Radiance Li = trace(scene, ms.wi, ctx);
-    // 	return object.Le(x, wo) + 2*PI * object.fr(x, wo, wi) * Li * wi.dot(object.n)
-    return hit.object->getMaterial().Le(hit, wo) + ms.fr.cwiseProduct(Li) * ms.wi.dir.dot(hit.n) / ms.pdf;
+    // 	return object.Le(x, wo) + 2*PI * object.fr(x, wo, wi) * Li *
+    // wi.dot(object.n)
+    return hit.object->getMaterial().Le(hit, wo) +
+           ms.fr.cwiseProduct(Li) * ms.wi.dir.dot(hit.n) / ms.pdf;
   }
 };

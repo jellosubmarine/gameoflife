@@ -2,7 +2,7 @@
 
 #include "../common.h"
 // #include "../cuda_memory.hpp"
-#include "pt.h"
+#include "gol.h"
 #include <GL/glew.h>
 
 #include <SFML/Graphics/RenderWindow.hpp>
@@ -25,7 +25,5 @@ private:
   GLuint glVBO_;
   // cudaGraphicsResource_t cudaVBO_;
   // cuda::raw_ptr<Pixel> vboPtr_;
-  PathTracer pt_;
-  Scene scene_;
-  Camera cam_;
+  GameOfLife gol_;
 };

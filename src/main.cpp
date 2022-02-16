@@ -23,6 +23,8 @@ int main(int argc, const char **argv) {
 
   sf::RenderWindow window(sf::VideoMode(opt.width, opt.height), "SFML + CUDA",
                           sf::Style::Titlebar | sf::Style::Close);
+  window.setVerticalSyncEnabled(true);
+
   ImGui::SFML::Init(window);
   spdlog::info("SFML window created");
 
@@ -37,20 +39,20 @@ int main(int argc, const char **argv) {
 
     ImGui::Begin("FPS");
     ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
-    ImGui::Text("%d SPP at %.3f s", ctx.frame, ctx.elapsed_seconds);
+    // ImGui::Text("%d SPP at %.3f s", ctx.frame, ctx.elapsed_seconds);
     ImGui::End();
 
-    ImGui::Begin("Control");
-    ImGui::SetNextItemWidth(100);
-    if (ImGui::Combo("Display mode", reinterpret_cast<int *>(&ctx.mode), mode_strings,
-                     DisplayMode::MODE_COUNT)) {
-      scene.resetBuffer(ctx);
-    }
-    if (ctx.mode == MODE_DEPTH) {
-      if (ImGui::SliderFloat("Far plane", &ctx.far_plane, 0.0f, 30.0f)) {
-        scene.resetBuffer(ctx);
-      }
-    }
+    // ImGui::Begin("Control");
+    // ImGui::SetNextItemWidth(100);
+    // if (ImGui::Combo("Display mode", reinterpret_cast<int *>(&ctx.mode),
+    //                  mode_strings, DisplayMode::MODE_COUNT)) {
+    //   scene.resetBuffer(ctx);
+    // }
+    // if (ctx.mode == MODE_DEPTH) {
+    //   if (ImGui::SliderFloat("Far plane", &ctx.far_plane, 0.0f, 30.0f)) {
+    //     scene.resetBuffer(ctx);
+    //   }
+    // }
     ImGui::End();
 
     window.clear();

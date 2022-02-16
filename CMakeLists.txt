@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 
-project(sfml_cuda_project CXX)
+project(gameoflife_cuda_project CXX CUDA)
 include(cmake/StandardProjectSettings.cmake)
 
 # find_package(CUDA REQUIRED)

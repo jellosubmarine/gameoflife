@@ -14,9 +14,10 @@ FullScreenOpenGLScene::FullScreenOpenGLScene(sf::RenderWindow const &window) {
   glBindBuffer(GL_ARRAY_BUFFER, glVBO_);
 
   // initialize VBO
-  width  = window.getSize().x;
+  width = window.getSize().x;
   height = window.getSize().y;
-  glBufferData(GL_ARRAY_BUFFER, width * height * sizeof(Pixel), 0, GL_DYNAMIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, width * height * sizeof(Pixel), 0,
+               GL_DYNAMIC_DRAW);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
   // cudaGraphicsGLRegisterBuffer(&cudaVBO_, glVBO_, cudaGraphicsMapFlagsNone);
@@ -27,10 +28,14 @@ FullScreenOpenGLScene::FullScreenOpenGLScene(sf::RenderWindow const &window) {
     for (unsigned int col = 0; col < width; ++col) {
       auto idx = row * width + col;
       screenBuffer_[idx].xy << col, row;
-      screenBuffer_[idx].color << col * 255 / width, row * 255 / height, 0, 255;
+      screenBuffer_[idx].color =
+          (idx % 2 == 0)
+              ? Black
+              : White; //<< col * 255 / width, row * 255 / height, 0, 255;
     }
   }
 
+  gol_.init();
   initScene();
 }
 
@@ -39,14 +44,22 @@ FullScreenOpenGLScene::~FullScreenOpenGLScene() { glDeleteBuffers(1, &glVBO_); }
 void FullScreenOpenGLScene::update([[maybe_unused]] AppContext &ctx) {
   // CUDA_CALL(cudaGraphicsMapResources(1, &cudaVBO_, 0));
   // size_t num_bytes;
-  // CUDA_CALL(cudaGraphicsResourceGetMappedPointer((void **)&vboPtr_, &num_bytes, cudaVBO_));
-  // renderCuda();
+  // CUDA_CALL(cudaGraphicsResourceGetMappedPointer((void **)&vboPtr_,
+  // &num_bytes, cudaVBO_)); renderCuda();
   // CUDA_CALL(cudaGraphicsUnmapResources(1, &cudaVBO_, 0));
-  pt_.render(scene_, cam_, ctx, screenBuffer_);
+  gol_.update();
+  for (unsigned int row = 0; row < height; ++row) {
+    for (unsigned int col = 0; col < width; ++col) {
+      auto idx = row * width + col;
+      screenBuffer_[idx].xy << col, row;
+      screenBuffer_[idx].color =
+          (gol_.gameMatrix_.at(idx) == 0) ? Black : White;
+    }
+  }
 
   glBindBuffer(GL_ARRAY_BUFFER, glVBO_);
-  glBufferData(GL_ARRAY_BUFFER, screenBuffer_.size() * sizeof(Pixel), screenBuffer_.data(),
-               GL_DYNAMIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, screenBuffer_.size() * sizeof(Pixel),
+               screenBuffer_.data(), GL_DYNAMIC_DRAW);
 }
 
 void FullScreenOpenGLScene::render(sf::RenderWindow &window) {
@@ -74,41 +87,6 @@ void FullScreenOpenGLScene::render(sf::RenderWindow &window) {
   window.popGLStates();
 }
 
-void FullScreenOpenGLScene::initScene() {
-  cam_.w   = width;
-  cam_.h   = height;
-  cam_.fov = R_PI * 0.4f;
-  cam_.pos << 0, 0, 11;
-  cam_.dir = -Vec3::UnitZ();
+void FullScreenOpenGLScene::initScene() {}
 
-  Material whiteLight{{0, 0, 0}, {1, 1, 1}};
-
-  Material white{{1, 1, 1}};
-  Material red{{1, .2, .2}};
-  Material blue{{.5, .5, 1}};
-  Material green{{.2, 1., .2}};
-
-  const float wallR = 1e4f;
-  const float roomR = 4.f;
-  const float wallD = wallR + roomR;
-
-  scene_.objects.push_back(Sphere(2, Vec3(0, 0, 0), white));
-
-  // scene_.objects.push_back({{-1, -roomR + 1.f, -1}, 1.f, white});
-  // scene_.objects.push_back({{2, -roomR + 2.f, -2}, 2.f, blue});
-
-  // scene_.objects.push_back({-Vec3::UnitY() * wallD, wallR, white});
-  // scene_.objects.push_back({Vec3::UnitY() * wallD, wallR, whiteLight});
-
-  // scene_.objects.push_back({Vec3::UnitX() * wallD, wallR, red});
-  // scene_.objects.push_back({-Vec3::UnitX() * wallD, wallR, green});
-
-  // scene_.objects.push_back({-Vec3::UnitZ() * wallD, wallR, white});
-
-  pt_.reset(cam_);
-}
-
-void FullScreenOpenGLScene::resetBuffer(AppContext &ctx) {
-  std::fill(pt_.radianceBuffer.begin(), pt_.radianceBuffer.end(), Radiance::Zero());
-  ctx.frame = 0;
-}
+void FullScreenOpenGLScene::resetBuffer(AppContext &ctx) { ctx.frame = 0; }
